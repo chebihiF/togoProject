@@ -1,0 +1,237 @@
+# Using version 2 as 3 does not support resource constraint options (cpu_*, mem_* limits) for non swarm mode in Compose
+version: "3"
+
+services:
+
+    alfresco:
+        image: registryged.togocom.tg/gedtogocom-repo_2
+#        build:
+#          context: ./alfresco
+#          args:
+#            ALFRESCO_TAG: 6.2.0-ga
+#            DB: mariadb
+#            API_EXPLORER_TAG: 6.2.0
+#        mem_limit: 28800m
+#        depends_on:  
+#            - mariadb 
+        environment:
+            JAVA_OPTS : '
+                -Ddb.driver=org.postgresql.Driver
+                -Ddb.username=alfresco
+                -Ddb.password=alfresco 
+                -Ddb.driver=com.mysql.cj.jdbc.Driver
+                -Ddb.url=jdbc:mysql://mariadb/alfresco?useUnicode=yes\&characterEncoding=UTF-8 
+                -Dsolr.host=solr6
+                -Dsolr.port=8983
+                -Dsolr.secureComms=none
+                -Dsolr.baseUrl=/solr
+                -Dindex.subsystem.name=solr6
+                -Dalfresco.host=ged.togocom.tg
+                -Dalfresco.port=443
+                -Dalfresco.protocol=https 
+                -Dshare.host=ged.togocom.tg
+                -Dshare.port=443
+                -Dshare.protocol=https 
+                -Daos.baseUrlOverwrite=https://ged.togocom.tg/alfresco/aos
+                -Dmessaging.broker.url="failover:(nio://activemq:61616)?timeout=3000&jms.useCompression=true"
+                -Ddeployment.method=DOCKER_COMPOSE
+                -Dcsrf.filter.enabled=false 
+                -Dftp.enabled=true
+                -Dftp.port=2121
+                -Dftp.dataPortFrom=2433
+                -Dftp.dataPortTo=2434 
+                -Dlocal.transform.service.enabled=true
+                -DlocalTransform.pdfrenderer.url=http://alfresco-pdf-renderer:8090/
+                -DlocalTransform.imagemagick.url=http://imagemagick:8090/
+                -DlocalTransform.libreoffice.url=http://libreoffice:8090/
+                -DlocalTransform.tika.url=http://tika:8090/
+                -DlocalTransform.misc.url=http://transform-misc:8090/
+                -Dlegacy.transform.service.enabled=true
+                -Dalfresco-pdf-renderer.url=http://alfresco-pdf-renderer:8090/
+                -Djodconverter.url=http://libreoffice:8090/
+                -Dimg.url=http://imagemagick:8090/
+                -Dtika.url=http://tika:8090/
+                -Dtransform.misc.url=http://transform-misc:8090/
+                -Dcsrf.filter.enabled=false
+                -Dalfresco.restApi.basicAuthScheme=true
+                -Dauthentication.protection.enabled=false
+                -XX:+UseG1GC -XX:+UseStringDeduplication
+                -Xms28288m -Xmx28288m 
+                -Dmail.host=192.168.20.25
+                -Dmail.port=25
+                -Dmail.protocol=smtp
+                -Dmail.smtps.starttls.enable=false
+                -Dmail.smtps.auth=false  
+                -Dauthentication.chain=alfinst:alfrescoNtlm,ldap1:ldap-ad
+                -Dldap.authentication.allowGuestLogin=false
+                -Dldap.authentication.userNameFormat=%s@TOGOCELL.INT
+                -Dldap.authentication.java.naming.provider.url=ldap://192.168.204.100:389
+                -Dldap.authentication.defaultAdministratorUserNames=gedadmin,Users
+                -Dldap.synchronization.java.naming.security.principal=gedadmin@dTOGOCELL.INT
+                -Dldap.synchronization.java.naming.security.credentials=Tgc@*9630
+                -Dldap.synchronization.groupSearchBase=CN=ALFRESCO,CN=Users,DC=TOGOCELL,DC=INT
+                -Dldap.synchronization.externalUserControl=true
+                -Dldap.synchronization.externalUserControlSubsystemName=ldap1
+                -Docr.command=/opt/alfresco/bin/ocrmypdf.sh
+                -Docr.output.verbose=true
+                -Docr.output.file.prefix.command=
+                -Docr.extra.commands="-j1 --author keensoft --rotate-pages -l spa+eng+fra --deskew --clean --skip-text"
+                -Docr.server.os=linux 
+            '
+        volumes: 
+            - ./data/alf-repo-data:/usr/local/tomcat/alf_data
+            - ./logs/alfresco:/usr/local/tomcat/logs 
+            - ./data/ocr/input:/ocr_input
+            - ./data/ocr/output:/ocr_output   
+        
+        ports:
+            - 2121:2121
+            - 2433:2433
+            - 2434:2434 
+       
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        
+        links:
+            - mariadb
+            - share
+            - solr6
+            - activemq
+            - alfresco-pdf-renderer
+            - imagemagick
+            - libreoffice
+            - tika
+            - transform-misc
+            - ocrmypdf
+
+    mariadb:
+        image: registryged.togocom.tg/gedtogocom-mariadb
+        environment:
+            - MYSQL_ROOT_PASSWORD=alfresco
+            - MYSQL_DATABASE=alfresco
+            - MYSQL_USER=alfresco
+            - MYSQL_PASSWORD=alfresco
+        command: "mysqld
+            --character-set-server=utf8
+            --collation-server=utf8_bin
+            --lower_case_table_names=1
+            --max_connections=200
+            --innodb-flush-method=O_DIRECT
+            --wait_timeout=28800"
+        volumes: 
+            - ./data/mariadb_data:/var/lib/mysql
+            - ./logs/mariadb:/var/log/mysql  
+        ports:
+            - 3306:3306
+
+    alfresco-pdf-renderer:
+        image: registryged.togocom.tg/gedtogocom-pdf-renderer
+        environment:
+            JAVA_OPTS: " -Xms256m -Xmx512m"
+        ports:
+            - 8090:8090
+
+    imagemagick:
+        image: registryged.togocom.tg/gedtogocom-imagemagick
+        environment:
+            JAVA_OPTS: " -Xms256m -Xmx512m"
+        ports:
+            - 8091:8090
+
+    libreoffice:
+        image: registryged.togocom.tg/gedtogocom-libreoffice
+        environment:
+            JAVA_OPTS: " -Xms256m -Xmx512m"
+        ports:
+            - 8092:8090
+
+    tika:
+        image: registryged.togocom.tg/gedtogocom-tika
+        environment:
+            JAVA_OPTS: " -Xms256m -Xmx512m"
+        ports:
+            - 8093:8090
+
+    transform-misc:
+        image: registryged.togocom.tg/gedtogocom-transform-misc
+        environment:
+            JAVA_OPTS: " -Xms256m -Xmx512m"
+        ports:
+            - 8094:8090
+
+    share:
+        image: registryged.togocom.tg/gedtogocom-share
+        environment:
+            REPO_HOST: "alfresco"
+            REPO_PORT: "8080"
+            JAVA_OPTS: "
+                -Xms7072m -Xmx7072m
+                -Dalfresco.context=alfresco
+                -Dalfresco.protocol=http
+                "
+        volumes: 
+            - ./logs/share:/usr/local/tomcat/logs  
+      
+    solr6:
+        image: registryged.togocom.tg/togocom-search
+        environment:
+            #Solr needs to know how to register itself with Alfresco
+            SOLR_ALFRESCO_HOST: "alfresco"
+            SOLR_ALFRESCO_PORT: "8080"
+            #Alfresco needs to know how to call solr
+            SOLR_SOLR_HOST: "solr6"
+            SOLR_SOLR_PORT: "8983"
+            #Create the default alfresco and archive cores
+            SOLR_CREATE_ALFRESCO_DEFAULTS: "alfresco,archive"
+            SOLR_JAVA_MEM: "-Xms14144m -Xmx14144m"
+            SOLR_OPTS: "
+                -XX:NewSize=6944m
+                -XX:MaxNewSize=6944m
+            "
+        volumes: 
+            - ./data/solr-data:/opt/alfresco-search-services/data  
+
+    activemq:
+        image: registryged.togocom.tg/gedtogocom-activemq
+        ports:
+            - 8161:8161 # Web Console
+            - 5672:5672 # AMQP
+            - 61616:61616 # OpenWire
+            - 61613:61613 # STOMP
+
+    content-app:
+        image: fhcebihi/gedtogocom-alfresco-content-app:v1
+        links: 
+            - alfresco
+            - share
+
+    # HTTP proxy to provide HTTP Default port access to services
+    # SOLR API and SOLR Web Console are protected to avoid unauthenticated access
+    proxy:
+        image: registryged.togocom.tg/gedtogocom-nginx
+        links: 
+            - alfresco
+            - solr6
+            - share
+            - content-app
+        volumes:
+            - ./config/nginx.conf:/etc/nginx/nginx.conf
+            - ./config/nginx.htpasswd:/etc/nginx/conf.d/nginx.htpasswd 
+            - ./config/cert/ged.crt:/etc/nginx/localhost.cer
+            - ./config/cert/ged.key:/etc/nginx/localhost.key 
+        ports:
+            - 443:443
+    
+    ocrmypdf:
+        image: registryged.togocom.tg/togocom-ocrmypdf
+#        build: ./ocrmypdf
+#        mem_limit: 512m
+        hostname: ocrmypdf
+        volumes: 
+            - ./data/ocr/input:/ocr_input
+            - ./data/ocr/output:/ocr_output  
+    
+
+    
