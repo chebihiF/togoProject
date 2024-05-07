@@ -4,7 +4,7 @@ version: "3"
 services:
 
     alfresco:
-        image: fhcebihi/gedtogocom-repo_2
+        image: fhcebihi/gedtogocom-repo_2:v1
 #        build:
 #          context: ./alfresco
 #          args:
@@ -107,7 +107,7 @@ services:
             - ocrmypdf
 
     mariadb:
-        image: fhcebihi/gedtogocom-mariadb
+        image: fhcebihi/gedtogocom-mariadb:v1
         environment:
             - MYSQL_ROOT_PASSWORD=alfresco
             - MYSQL_DATABASE=alfresco
@@ -127,42 +127,42 @@ services:
             - 3306:3306
 
     alfresco-pdf-renderer:
-        image: fhcebihi/gedtogocom-pdf-renderer
+        image: fhcebihi/gedtogocom-pdf-renderer:v1
         environment:
             JAVA_OPTS: " -Xms256m -Xmx512m"
         ports:
             - 8090:8090
 
     imagemagick:
-        image: fhcebihi/gedtogocom-imagemagick
+        image: fhcebihi/gedtogocom-imagemagick:v1
         environment:
             JAVA_OPTS: " -Xms256m -Xmx512m"
         ports:
             - 8091:8090
 
     libreoffice:
-        image: fhcebihi/gedtogocom-libreoffice
+        image: fhcebihi/gedtogocom-libreoffice:v1
         environment:
             JAVA_OPTS: " -Xms256m -Xmx512m"
         ports:
             - 8092:8090
 
     tika:
-        image: fhcebihi/gedtogocom-tika
+        image: fhcebihi/gedtogocom-tika:v1
         environment:
             JAVA_OPTS: " -Xms256m -Xmx512m"
         ports:
             - 8093:8090
 
     transform-misc:
-        image: fhcebihi/gedtogocom-transform-misc
+        image: fhcebihi/gedtogocom-transform-misc:v1
         environment:
             JAVA_OPTS: " -Xms256m -Xmx512m"
         ports:
             - 8094:8090
 
     share:
-        image: fhcebihi/gedtogocom-share
+        image: fhcebihi/gedtogocom-share:v1
         environment:
             REPO_HOST: "alfresco"
             REPO_PORT: "8080"
@@ -175,7 +175,7 @@ services:
             - ./logs/share:/usr/local/tomcat/logs  
       
     solr6:
-        image: fhcebihi/togocom-search
+        image: fhcebihi/togocom-search:v1
         environment:
             #Solr needs to know how to register itself with Alfresco
             SOLR_ALFRESCO_HOST: "alfresco"
@@ -194,7 +194,7 @@ services:
             - ./data/solr-data:/opt/alfresco-search-services/data  
 
     activemq:
-        image: fhcebihi/gedtogocom-activemq
+        image: fhcebihi/gedtogocom-activemq:v1
         ports:
             - 8161:8161 # Web Console
             - 5672:5672 # AMQP
@@ -210,7 +210,7 @@ services:
     # HTTP proxy to provide HTTP Default port access to services
     # SOLR API and SOLR Web Console are protected to avoid unauthenticated access
     proxy:
-        image: fhcebihi/gedtogocom-nginx
+        image: fhcebihi/gedtogocom-nginx:v1
         links: 
             - alfresco
             - solr6
@@ -225,7 +225,7 @@ services:
             - 443:443
     
     ocrmypdf:
-        image: fhcebihi/togocom-ocrmypdf
+        image: fhcebihi/togocom-ocrmypdf:v1
 #        build: ./ocrmypdf
 #        mem_limit: 512m
         hostname: ocrmypdf
